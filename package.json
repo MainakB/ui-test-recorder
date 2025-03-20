@@ -1,0 +1,50 @@
+{
+  "name": "ui-test-recorder",
+  "version": "1.0.0",
+  "description": "UI Test Automation Recorder",
+  "main": "main.js",
+  "scripts": {
+    "predev": "webpack --config webpack.config.js && mkdir -p build && cp src/renderer/index.html build/index.html",
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "webpack --config webpack.config.js && electron-builder",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "author": "",
+  "license": "MIT",
+  "build": {
+    "appId": "com.uitestrecorder.app",
+    "productName": "UI Test Recorder",
+    "files": [
+      "build/**/*",
+      "node_modules/**/*",
+      "main.js"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    }
+  },
+  "dependencies": {
+    "electron": "^35.0.2",
+    "electron-store": "^10.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-redux": "^9.2.0",
+    "react-split": "^2.0.14",
+    "redux": "^5.0.1",
+    "redux-thunk": "^3.1.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-react": "^7.26.3",
+    "babel-loader": "^10.0.0",
+    "css-loader": "^7.1.2",
+    "electron-builder": "^25.1.8",
+    "electron-devtools-installer": "^4.0.0",
+    "style-loader": "^4.0.0",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
+  }
+}

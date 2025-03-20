@@ -1,0 +1,35 @@
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  .split-pane {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    border-right: 1px solid #e0e0e0;
+    overflow: hidden;
+  }
+  
+  .right-panel {
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  .gutter {
+    background-color: #f0f0f0;
+    background-repeat: no-repeat;
+    background-position: 50%;
+  }
+  
+  .gutter.gutter-horizontal {
+    cursor: col-resize;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+  }
