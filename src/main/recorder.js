@@ -50,20 +50,13 @@ class Recorder extends EventEmitter {
 
   async handleElementClicked(element) {
     if (!element) return;
-
+    console.log("handleElementClicked---> ", element);
     // Prepare selector array from element info
-    const selectors = [
-      {
-        type: "css",
-        value: element.selector || element.tagName.toLowerCase(),
-        confidence: 100,
-      },
-    ];
 
     const clickAction = {
       type: "click",
       target: this.getElementDescription(element),
-      selector: selectors,
+      selector: await this.selectorGenerator.generateSelector(element),
       timestamp: Date.now(),
       _elementInfo: element,
     };
@@ -75,18 +68,9 @@ class Recorder extends EventEmitter {
   async handleInputChanged(element) {
     if (!element) return;
 
-    // Prepare selector array from element info
-    const selectors = [
-      {
-        type: "css",
-        value: element.selector || `${element.tagName.toLowerCase()}`,
-        confidence: 100,
-      },
-    ];
-
     const inputAction = {
       type: "input",
-      selector: selectors,
+      selector: await this.selectorGenerator.generateSelector(element),
       value: element.value,
       target: this.getElementDescription(element),
       timestamp: Date.now(),

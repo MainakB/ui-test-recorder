@@ -288,8 +288,9 @@ function generateXPath(element) {
 
   const parts = [];
   let current = element;
-
+  console.log("First: , current.id", current.id);
   while (current && current.nodeType === Node.ELEMENT_NODE) {
+    console.log("Loop: , current.id", current.id);
     let xpathPart = current.tagName.toLowerCase();
 
     // Check if the element has an ID

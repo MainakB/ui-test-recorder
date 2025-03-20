@@ -6,6 +6,7 @@ class SelectorGenerator {
       "data-testid",
       "data-cy",
       "data-test",
+      "href",
     ];
   }
 
@@ -20,7 +21,7 @@ class SelectorGenerator {
     const selectors = [];
 
     // ID selector
-    if (element.id) {
+    if (element.id && element.id.trim() !== "") {
       selectors.push({
         type: "css",
         value: `#${element.id}`,
@@ -31,20 +32,41 @@ class SelectorGenerator {
     // Attribute selectors
     if (element.attributes) {
       for (const attr of this.preferredAttributes) {
-        const attribute = element.attributes.find((a) => a.name === attr);
+        const attribute = element.attributes[attr];
+        // element.attributes.find( (a) => a.name === attr);
         if (attribute) {
           selectors.push({
             type: "css",
-            value: `[${attr}="${attribute.value}"]`,
+            value: `[${attr}="${attribute}"]`,
             confidence: 90,
           });
         }
+      }
+    }
+    if (element.aria) {
+      if (element.aria.label && element.aria.label !== "") {
+        selectors.push({
+          type: "arialabel",
+          value: element.aria.label,
+          confidence: 85,
+        });
+      }
+    }
+
+    if (element.role) {
+      if (element.aria.role && element.aria.role !== "") {
+        selectors.push({
+          type: "ariarole",
+          value: element.aria.role,
+          confidence: 80,
+        });
       }
     }
 
     // Class selector (if not too generic)
     if (element.className) {
       const classes = element.className.split(" ").filter(Boolean);
+
       if (classes.length === 1 && !classes[0].startsWith("_")) {
         selectors.push({
           type: "css",
@@ -66,8 +88,8 @@ class SelectorGenerator {
     }
 
     // Tag + content selector (for elements with text)
-    if (element.textContent && element.textContent.trim()) {
-      const text = element.textContent.trim().substring(0, 20);
+    if (element.innerText && element.innerText.trim()) {
+      const text = element.innerText.trim().substring(0, 50);
       if (text.length > 5) {
         // Only use text if meaningful
         selectors.push({
@@ -78,16 +100,24 @@ class SelectorGenerator {
       }
     }
 
-    // Tag + position (fallback)
-    selectors.push({
-      type: "xpath",
-      value: this.generateXPathByPosition(element),
-      confidence: 20,
-    });
+    if (element.xpath) {
+      selectors.push({
+        type: "xpath",
+        value: element.xpath,
+        confidence: 20,
+      });
+    }
+    // Fix relative xpath
+    // selectors.push({
+    //   type: "xpath",
+    //   value: this.generateXPathByPosition(element),
+    //   confidence: 20,
+    // });
 
     // Sort by confidence and return the best selector
     selectors.sort((a, b) => b.confidence - a.confidence);
-    return selectors[0] ? [selectors[0]] : [];
+
+    return selectors.length > 0 ? selectors : [];
   }
 
   generateXPathByPosition(element) {

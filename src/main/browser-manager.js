@@ -30,202 +30,202 @@ class BrowserManager extends EventEmitter {
         return;
       }
 
-      switch (data.type) {
-        case "click":
-          this.handleClick(data.element);
-          break;
-        case "input":
-          this.handleInput(data.element);
-          break;
-        case "navigation":
-          this.handleNavigation(data.url);
-          break;
-      }
+      //   switch (data.type) {
+      //     case "click":
+      //       this.handleClick(data.element);
+      //       break;
+      //     case "input":
+      //       this.handleInput(data.element);
+      //       break;
+      //     case "navigation":
+      //       this.handleNavigation(data.url);
+      //       break;
+      //   }
     });
   }
 
-  handleClick(element) {
-    console.log("Processing click on element:", element.tagName);
+  //   handleClick(element) {
+  //     console.log("Processing click on element:", element.tagName);
 
-    // Prevent duplicate clicks (debounce)
-    const now = Date.now();
-    if (now - this.lastClickTime < 300) {
-      console.log("Click ignored: too soon after previous click");
-      return;
-    }
-    this.lastClickTime = now;
+  //     // Prevent duplicate clicks (debounce)
+  //     const now = Date.now();
+  //     if (now - this.lastClickTime < 300) {
+  //       console.log("Click ignored: too soon after previous click");
+  //       return;
+  //     }
+  //     this.lastClickTime = now;
 
-    // Generate multiple selector types
-    const selectors = this.generateSelectors(element);
+  //     // Generate multiple selector types
+  //     const selectors = this.generateSelectors(element);
 
-    this.emit("action", {
-      type: "click",
-      //   target: element.selector || element.tagName,
-      selector: selectors,
-      value: null,
-      position: element.position || null,
-      attributes: element.attributes || {},
-      timestamp: now,
-      _elementInfo: element,
-    });
-  }
+  //     this.emit("action", {
+  //       type: "click",
+  //       //   target: element.selector || element.tagName,
+  //       selector: selectors,
+  //       value: null,
+  //       position: element.position || null,
+  //       attributes: element.attributes || {},
+  //       timestamp: now,
+  //       _elementInfo: element,
+  //     });
+  //   }
 
-  handleInput(element) {
-    console.log("Processing input on element:", element.tagName);
+  //   handleInput(element) {
+  //     console.log("Processing input on element:", element.tagName);
 
-    const elementId = this.getElementUniqueId(element);
+  //     const elementId = this.getElementUniqueId(element);
 
-    // Clear any existing debounce timer for this element
-    if (this.inputDebounceTimers.has(elementId)) {
-      clearTimeout(this.inputDebounceTimers.get(elementId));
-    }
+  //     // Clear any existing debounce timer for this element
+  //     if (this.inputDebounceTimers.has(elementId)) {
+  //       clearTimeout(this.inputDebounceTimers.get(elementId));
+  //     }
 
-    // Set a new debounce timer
-    const timer = setTimeout(() => {
-      // Generate multiple selector types
-      const selectors = this.generateSelectors(element);
-      this.emit("action", {
-        type: "input",
-        // target: element.selector || element.tagName,
-        selector: selectors,
-        value: element.value,
-        position: element.position || null,
-        attributes: element.attributes || {},
-        timestamp: Date.now(),
-        _elementInfo: element,
-      });
-      // Remove the timer reference
-      this.inputDebounceTimers.delete(elementId);
-    }, 500); // 500ms debounce
+  //     // Set a new debounce timer
+  //     const timer = setTimeout(() => {
+  //       // Generate multiple selector types
+  //       const selectors = this.generateSelectors(element);
+  //       this.emit("action", {
+  //         type: "input",
+  //         // target: element.selector || element.tagName,
+  //         selector: selectors,
+  //         value: element.value,
+  //         position: element.position || null,
+  //         attributes: element.attributes || {},
+  //         timestamp: Date.now(),
+  //         _elementInfo: element,
+  //       });
+  //       // Remove the timer reference
+  //       this.inputDebounceTimers.delete(elementId);
+  //     }, 500); // 500ms debounce
 
-    // Store the timer reference
-    this.inputDebounceTimers.set(elementId, timer);
-  }
+  //     // Store the timer reference
+  //     this.inputDebounceTimers.set(elementId, timer);
+  //   }
 
-  handleNavigation(url) {
-    console.log("Processing navigation to:", url);
+  //   handleNavigation(url) {
+  //     console.log("Processing navigation to:", url);
 
-    // Skip about:blank navigations
-    if (url === "about:blank") {
-      console.log("Navigation ignored: about:blank");
-      return;
-    }
+  //     // Skip about:blank navigations
+  //     if (url === "about:blank") {
+  //       console.log("Navigation ignored: about:blank");
+  //       return;
+  //     }
 
-    // Skip if this URL is the same as the last one we recorded
-    if (url === this.lastNavigationUrl) {
-      console.log("Navigation ignored: duplicate URL");
-      return;
-    }
+  //     // Skip if this URL is the same as the last one we recorded
+  //     if (url === this.lastNavigationUrl) {
+  //       console.log("Navigation ignored: duplicate URL");
+  //       return;
+  //     }
 
-    // Clear any existing debounce timeout
-    if (this.navigationDebounceTimeout) {
-      clearTimeout(this.navigationDebounceTimeout);
-    }
+  //     // Clear any existing debounce timeout
+  //     if (this.navigationDebounceTimeout) {
+  //       clearTimeout(this.navigationDebounceTimeout);
+  //     }
 
-    // Set a debounce timeout to prevent recording multiple navigations for the same action
-    this.navigationDebounceTimeout = setTimeout(() => {
-      this.lastNavigationUrl = url;
+  //     // Set a debounce timeout to prevent recording multiple navigations for the same action
+  //     this.navigationDebounceTimeout = setTimeout(() => {
+  //       this.lastNavigationUrl = url;
 
-      this.emit("action", {
-        type: "navigation",
-        url: url,
-        timestamp: Date.now(),
-      });
+  //       this.emit("action", {
+  //         type: "navigation",
+  //         url: url,
+  //         timestamp: Date.now(),
+  //       });
 
-      this.navigationDebounceTimeout = null;
-    }, 500); // 500ms debounce for navigation events
-  }
+  //       this.navigationDebounceTimeout = null;
+  //     }, 500); // 500ms debounce for navigation events
+  //   }
 
-  // Helper to generate unique ID for an element based on its properties
-  getElementUniqueId(element) {
-    const idParts = [
-      element.tagName || "",
-      element.id || "",
-      element.name || "",
-      element.type || "",
-      element.selector || "",
-    ];
-    return idParts.filter(Boolean).join("_");
-  }
+  //   // Helper to generate unique ID for an element based on its properties
+  //   getElementUniqueId(element) {
+  //     const idParts = [
+  //       element.tagName || "",
+  //       element.id || "",
+  //       element.name || "",
+  //       element.type || "",
+  //       element.selector || "",
+  //     ];
+  //     return idParts.filter(Boolean).join("_");
+  //   }
 
-  // Helper to generate multiple selector types
-  generateSelectors(element) {
-    const selectors = [];
+  //   // Helper to generate multiple selector types
+  //   generateSelectors(element) {
+  //     const selectors = [];
 
-    // ID selector (highest priority)
-    if (element.id) {
-      selectors.push({
-        type: "id",
-        value: element.id,
-        confidence: 100,
-      });
-    }
+  //     // ID selector (highest priority)
+  //     if (element.id) {
+  //       selectors.push({
+  //         type: "id",
+  //         value: element.id,
+  //         confidence: 100,
+  //       });
+  //     }
 
-    // Test ID selector (high priority)
-    if (element.attributes && element.attributes["data-testid"]) {
-      selectors.push({
-        type: "testId",
-        value: `[data-testid="${element.attributes["data-testid"]}"]`,
-        confidence: 95,
-      });
-    }
+  //     // Test ID selector (high priority)
+  //     if (element.attributes && element.attributes["data-testid"]) {
+  //       selectors.push({
+  //         type: "testId",
+  //         value: `[data-testid="${element.attributes["data-testid"]}"]`,
+  //         confidence: 95,
+  //       });
+  //     }
 
-    // Name attribute selector
-    if (element.name) {
-      selectors.push({
-        type: "name",
-        value: element.name,
-        confidence: 90,
-      });
-    }
+  //     // Name attribute selector
+  //     if (element.name) {
+  //       selectors.push({
+  //         type: "name",
+  //         value: element.name,
+  //         confidence: 90,
+  //       });
+  //     }
 
-    // CSS selector
-    if (element.selector) {
-      selectors.push({
-        type: "css",
-        value: element.selector,
-        confidence: 85,
-      });
-    }
+  //     // CSS selector
+  //     if (element.selector) {
+  //       selectors.push({
+  //         type: "css",
+  //         value: element.selector,
+  //         confidence: 85,
+  //       });
+  //     }
 
-    // Class selector
-    if (element.className) {
-      selectors.push({
-        type: "class",
-        value: element.className,
-        confidence: 80,
-      });
-    }
+  //     // Class selector
+  //     if (element.className) {
+  //       selectors.push({
+  //         type: "class",
+  //         value: element.className,
+  //         confidence: 80,
+  //       });
+  //     }
 
-    // Tag selector (lowest priority)
-    if (element.tagName) {
-      selectors.push({
-        type: "tag",
-        value: element.tagName,
-        confidence: 60,
-      });
-    }
+  //     // Tag selector (lowest priority)
+  //     if (element.tagName) {
+  //       selectors.push({
+  //         type: "tag",
+  //         value: element.tagName,
+  //         confidence: 60,
+  //       });
+  //     }
 
-    // XPath if available
-    if (element.xpath) {
-      selectors.push({
-        type: "xpath",
-        value: element.xpath,
-        confidence: 75,
-      });
-    }
+  //     // XPath if available
+  //     if (element.xpath) {
+  //       selectors.push({
+  //         type: "xpath",
+  //         value: element.xpath,
+  //         confidence: 75,
+  //       });
+  //     }
 
-    // If no selectors were generated, use a default one
-    if (selectors.length === 0) {
-      selectors.push({
-        type: "css",
-        value: element.tagName || "unknown",
-        confidence: 50,
-      });
-    }
+  //     // If no selectors were generated, use a default one
+  //     if (selectors.length === 0) {
+  //       selectors.push({
+  //         type: "css",
+  //         value: element.tagName || "unknown",
+  //         confidence: 50,
+  //       });
+  //     }
 
-    return selectors;
-  }
+  //     return selectors;
+  //   }
 
   async launch(url) {
     try {
