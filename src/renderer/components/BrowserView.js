@@ -6,11 +6,45 @@ import "../styles/BrowserView.css";
 
 function BrowserView() {
   const webviewRef = useRef(null);
+  const containerRef = useRef(null);
   const { currentUrl, isRecording, isPaused } = useSelector(
     (state) => state.recorder
   );
+
+  const [scale, setScale] = useState(1);
+
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
+
+  const MARGIN_X = 20; // total horizontal margin
+  const MARGIN_Y = 20; // total vertical margin
+
+  // Update scale factors based on container dimensions
+  useEffect(() => {
+    const updateScale = () => {
+      if (!containerRef.current || !containerRef.current.parentElement) return;
+
+      // Get the panel's available size
+      const parentRect =
+        containerRef.current.parentElement.getBoundingClientRect();
+      const availableWidth = parentRect.width - MARGIN_X;
+      const availableHeight = parentRect.height - MARGIN_Y;
+
+      // Uniform scale to preserve aspect ratio
+      const uniformScale = Math.min(
+        availableWidth / 1280,
+        availableHeight / 800
+      );
+
+      setScale(uniformScale);
+    };
+
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => {
+      window.removeEventListener("resize", updateScale);
+    };
+  }, []);
 
   // When currentUrl changes, navigate the webview
   useEffect(() => {
@@ -87,6 +121,15 @@ function BrowserView() {
             "did-stop-loading",
             handleNavigationEnd
           );
+
+          return () => {
+            if (webviewRef.current) {
+              webviewRef.current.removeEventListener(
+                "dom-ready",
+                handleDomReady
+              );
+            }
+          };
         }
       };
     }
@@ -188,14 +231,24 @@ function BrowserView() {
           Recording{isPaused ? " (Paused)" : ""}...
         </div>
       )}
-      <webview
-        ref={webviewRef}
-        src="about:blank"
-        className="webview"
-        preload="./preload.js"
-        nodeintegration="true"
-        webpreferences="contextIsolation=false"
-      />
+      <div
+        className="desktop-container"
+        ref={containerRef}
+        style={{
+          transform: `translate(${MARGIN_X / 2}px, ${
+            MARGIN_Y / 2
+          }px) scale(${scale})`,
+        }}
+      >
+        <webview
+          ref={webviewRef}
+          src="about:blank"
+          className="webview"
+          preload="./preload.js"
+          nodeintegration="true"
+          webpreferences="contextIsolation=false"
+        />
+      </div>
     </div>
   );
 }
