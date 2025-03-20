@@ -5,14 +5,17 @@ console.log("UI Test Recorder: Preload script loaded in webview");
 
 // We need to wait until the document is fully loaded
 window.addEventListener("DOMContentLoaded", () => {
-  console.log("UI Test Recorder: DOM Content Loaded");
+  console.log("UI Test Recorder: Preload script loaded in webview");
+
+  //   // Set up mutation observer to detect DOM changes
+  //   setupMutationObserver();
 
   // Set up event listeners for user interactions
   setupEventListeners();
 });
 
 function setupEventListeners() {
-  // Capture click events with useCapture=true to get them before they're handled
+  // Capture click events
   document.addEventListener(
     "click",
     (event) => {
@@ -22,20 +25,8 @@ function setupEventListeners() {
 
         console.log("Click detected on:", element.tagName);
 
-        // Generate element info for IPC
-        const elementInfo = {
-          tagName: element.tagName?.toLowerCase() || "unknown",
-          id: element.id || "",
-          className: element.className || "",
-          name: element.getAttribute("name") || "",
-          type: element.getAttribute("type") || "",
-          innerText: element.innerText
-            ? element.innerText.substring(0, 50)
-            : "",
-          value: element.value || "",
-          href: element.href || "",
-          selector: generateSelector(element),
-        };
+        // Generate element info for IPC with multiple locator types
+        const elementInfo = getElementInfo(element, event);
 
         // Send directly to host (BrowserView)
         console.log("Sending click event to host:", elementInfo);
@@ -44,13 +35,13 @@ function setupEventListeners() {
           element: elementInfo,
         });
       } catch (e) {
-        console.error("Error in click handler:", e);
+        console.error("Error in click handler:", e.stack);
       }
     },
     true
   );
 
-  // Capture input events with useCapture=true
+  // Input change events (for select, checkboxes, radio buttons)
   document.addEventListener(
     "change",
     (event) => {
@@ -63,15 +54,55 @@ function setupEventListeners() {
 
         console.log("Input change detected on:", element.tagName);
 
-        const elementInfo = {
-          tagName: element.tagName?.toLowerCase() || "unknown",
-          id: element.id || "",
-          className: element.className || "",
-          name: element.getAttribute("name") || "",
-          type: element.getAttribute("type") || "",
-          value: getSafeValue(element),
-          selector: generateSelector(element),
-        };
+        // Only process immediately if it's not a text input
+        // (text inputs will be handled by the 'input' event with debouncing)
+        if (
+          element.tagName.toLowerCase() !== "input" ||
+          (element.type !== "text" &&
+            element.type !== "password" &&
+            element.type !== "email" &&
+            element.type !== "number" &&
+            element.type !== "search" &&
+            element.type !== "tel" &&
+            element.type !== "url")
+        ) {
+          const elementInfo = getElementInfo(element, event);
+
+          // Send directly to host (BrowserView)
+          console.log("Sending input event to host:", elementInfo);
+          ipcRenderer.sendToHost("webview-event", {
+            type: "input",
+            element: elementInfo,
+          });
+        }
+      } catch (e) {
+        console.error("Error in input handler:", e.stack);
+      }
+    },
+    true
+  );
+
+  // Text input events (with debouncing)
+  document.addEventListener(
+    "input",
+    (event) => {
+      try {
+        const element = event.target;
+        if (!element || !isFormElement(element)) return;
+
+        // For text inputs, we'll set a property to track the last value
+        // to avoid duplicate events
+        const currentValue = getSafeValue(element);
+        if (element._lastRecordedValue === currentValue) {
+          return; // Skip if the value hasn't changed
+        }
+
+        console.log("Input typing detected on:", element.tagName);
+
+        // Store current value to prevent duplicates
+        element._lastRecordedValue = currentValue;
+
+        const elementInfo = getElementInfo(element, event);
 
         // Send directly to host (BrowserView)
         console.log("Sending input event to host:", elementInfo);
@@ -80,47 +111,7 @@ function setupEventListeners() {
           element: elementInfo,
         });
       } catch (e) {
-        console.error("Error in input handler:", e);
-      }
-    },
-    true
-  );
-
-  // Also listen for input events to catch typing
-  document.addEventListener(
-    "input",
-    (event) => {
-      try {
-        const element = event.target;
-        if (!element || !isFormElement(element)) return;
-
-        // Debounce input events (only send after typing pauses)
-        if (element._inputTimeout) {
-          clearTimeout(element._inputTimeout);
-        }
-
-        element._inputTimeout = setTimeout(() => {
-          console.log("Input typing detected on:", element.tagName);
-
-          const elementInfo = {
-            tagName: element.tagName?.toLowerCase() || "unknown",
-            id: element.id || "",
-            className: element.className || "",
-            name: element.getAttribute("name") || "",
-            type: element.getAttribute("type") || "",
-            value: getSafeValue(element),
-            selector: generateSelector(element),
-          };
-
-          // Send directly to host (BrowserView)
-          console.log("Sending input event to host:", elementInfo);
-          ipcRenderer.sendToHost("webview-event", {
-            type: "input",
-            element: elementInfo,
-          });
-        }, 500); // 500ms debounce
-      } catch (e) {
-        console.error("Error in input handler:", e);
+        console.error("Error in input handler:", e.stack);
       }
     },
     true
@@ -155,6 +146,55 @@ function setupEventListeners() {
   // Initial URL notification
   notifyUrlChange();
 
+  function getElementInfo(element, event) {
+    if (!element) return {};
+
+    // Extract all attributes
+    const attributes = {};
+    if (element.attributes) {
+      for (let i = 0; i < element.attributes.length; i++) {
+        const attr = element.attributes[i];
+        attributes[attr.name] = attr.value;
+      }
+    }
+
+    // Get position information if it's a click event
+    const position =
+      event && event.type === "click"
+        ? {
+            x: event.clientX,
+            y: event.clientY,
+            pageX: event.pageX,
+            pageY: event.pageY,
+            offsetX: event.offsetX,
+            offsetY: event.offsetY,
+          }
+        : null;
+
+    return {
+      tagName: element.tagName?.toLowerCase() || "unknown",
+      id: element.id || "",
+      className: element.className || "",
+      name: element.getAttribute("name") || "",
+      type: element.getAttribute("type") || "",
+      innerText: element.innerText ? element.innerText.substring(0, 50) : "",
+      value: getSafeValue(element),
+      href: element.href || "",
+      // Multiple selector types
+      selector: generateCssSelector(element),
+      xpath: generateXPath(element),
+      aria: {
+        label: element.getAttribute("aria-label") || "",
+        role: element.getAttribute("role") || "",
+        labelledby: element.getAttribute("aria-labelledby") || "",
+      },
+      attributes,
+      position,
+      // For input elements, track if this is the final value
+      isFinalValue: true,
+    };
+  }
+
   console.log("UI Test Recorder: Event listeners successfully attached");
 }
 
@@ -166,11 +206,11 @@ function notifyUrlChange() {
       url: window.location.href,
     });
   } catch (e) {
-    console.error("Error in navigation handler:", e);
+    console.error("Error in navigation handler:", e.stack);
   }
 }
 
-function generateSelector(element) {
+function generateCssSelector(element) {
   if (!element) return "";
 
   // Try to generate a unique selector
@@ -195,8 +235,9 @@ function generateSelector(element) {
     }
   }
 
-  // If no good selector, use a simple path
+  // If no good selector, try with CSS selector
   try {
+    // Use custom path algorithm for better results
     return getCssSelectorPath(element);
   } catch (e) {
     // If all else fails, use a simpler approach
@@ -242,6 +283,47 @@ function getCssSelectorPath(element) {
   return path.join(" > ");
 }
 
+function generateXPath(element) {
+  if (!element) return "";
+
+  const parts = [];
+  let current = element;
+  console.log("First: , current.id", current.id);
+  while (current && current.nodeType === Node.ELEMENT_NODE) {
+    console.log("Loop: , current.id", current.id);
+    let xpathPart = current.tagName.toLowerCase();
+
+    // Check if the element has an ID
+    if (current.id) {
+      xpathPart = `//${current.tagName.toLowerCase()}[@id="${current.id}"]`;
+      parts.push(xpathPart);
+      break;
+    }
+
+    // Get position among siblings
+    if (current.parentNode) {
+      const siblings = Array.from(current.parentNode.children).filter(
+        (child) => child.tagName === current.tagName
+      );
+
+      if (siblings.length > 1) {
+        const index = siblings.indexOf(current) + 1;
+        xpathPart += `[${index}]`;
+      }
+    }
+
+    parts.unshift(xpathPart);
+    current = current.parentNode;
+
+    // Limit XPath depth
+    if (parts.length > 6) {
+      break;
+    }
+  }
+
+  return "/" + parts.join("/");
+}
+
 function isFormElement(element) {
   if (!element || !element.tagName) return false;
 
@@ -267,5 +349,17 @@ function getSafeValue(element) {
   return element.value || "";
 }
 
-// Notify that preload script has been loaded and set up
-console.log("UI Test Recorder: Preload script setup complete");
+function setupMutationObserver() {
+  // Create a mutation observer to detect DOM changes
+  const observer = new MutationObserver((mutations) => {
+    // This can be used for more advanced features later
+    // Such as detecting when elements appear/disappear
+  });
+
+  // Start observing
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+  });
+}

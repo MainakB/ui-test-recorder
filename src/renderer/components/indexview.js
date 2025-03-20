@@ -97,13 +97,11 @@ function BrowserView() {
 
       // Make sure we only process our specific messages
       if (e.channel === "webview-event") {
-        // Forward to main process
-        // ipcRenderer.send(e.channel, e.args[0]);
         const eventData = e.args[0];
         console.log("Processing webview event:", eventData.type);
 
         // Forward to main process
-        ipcRenderer.send(e.channel, eventData);
+        ipcRenderer.send("webview-event", eventData);
       }
     };
 
@@ -282,12 +280,9 @@ function BrowserView() {
           ref={webviewRef}
           src="about:blank"
           className="webview"
-          preload={`${process.cwd()}/build/preload.js`}
-          webpreferences="contextIsolation=false, nodeIntegration=true"
+          webpreferences="nodeIntegration=true, contextIsolation=false"
           nodeintegration="true"
-          nodeintegrationinsubframes="true"
-          enableremotemodule="true"
-          plugins="true"
+          preload={`${process.cwd()}/build/preload.js`}
         />
       </div>
     </div>
