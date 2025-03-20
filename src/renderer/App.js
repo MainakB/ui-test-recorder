@@ -1,4 +1,12 @@
-// In src/renderer/App.js
+// src/renderer/App.js
+import React from "react";
+import Split from "react-split";
+import ControlPanel from "./components/ControlPanel";
+import StepEditor from "./components/StepEditor";
+import BrowserView from "./components/BrowserView";
+import StatusBar from "./components/StatusBar";
+import "./styles/App.css";
+
 function App() {
   return (
     <div className="app-container">
@@ -10,8 +18,7 @@ function App() {
       >
         <div className="left-panel">
           <ControlPanel />
-          <StepEditor />{" "}
-          {/* Make sure this is StepEditor, not another BrowserView */}
+          <StepEditor />
         </div>
         <div className="right-panel">
           <BrowserView />
@@ -21,3 +28,5 @@ function App() {
     </div>
   );
 }
+
+export default App;
