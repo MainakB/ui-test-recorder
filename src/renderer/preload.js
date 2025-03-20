@@ -35,7 +35,7 @@ function setupEventListeners() {
           element: elementInfo,
         });
       } catch (e) {
-        console.error("Error in click handler:", e);
+        console.error("Error in click handler:", e.stack);
       }
     },
     true
@@ -76,7 +76,7 @@ function setupEventListeners() {
           });
         }
       } catch (e) {
-        console.error("Error in input handler:", e);
+        console.error("Error in input handler:", e.stack);
       }
     },
     true
@@ -111,7 +111,7 @@ function setupEventListeners() {
           element: elementInfo,
         });
       } catch (e) {
-        console.error("Error in input handler:", e);
+        console.error("Error in input handler:", e.stack);
       }
     },
     true
@@ -206,7 +206,7 @@ function notifyUrlChange() {
       url: window.location.href,
     });
   } catch (e) {
-    console.error("Error in navigation handler:", e);
+    console.error("Error in navigation handler:", e.stack);
   }
 }
 
@@ -295,7 +295,7 @@ function generateXPath(element) {
     // Check if the element has an ID
     if (current.id) {
       xpathPart = `//${current.tagName.toLowerCase()}[@id="${current.id}"]`;
-      parts = [xpathPart];
+      parts.push(xpathPart);
       break;
     }
 
