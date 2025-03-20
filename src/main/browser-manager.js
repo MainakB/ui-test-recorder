@@ -12,10 +12,11 @@ class BrowserManager extends EventEmitter {
 
   async launch(url) {
     try {
+      // Launch browser in headless mode
       this.browser = await puppeteer.launch({
-        headless: false,
+        headless: true, // Change to true to prevent separate window
         defaultViewport: null,
-        args: ["--start-maximized"],
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
       });
 
       this.page = await this.browser.newPage();
@@ -26,7 +27,13 @@ class BrowserManager extends EventEmitter {
       // Navigate to the URL
       await this.page.goto(url, { waitUntil: "networkidle2" });
 
-      this.emit("browser-ready", { url });
+      // Instead of launching a separate window, we'll communicate
+      // with the webview in the renderer process
+      this.emit("browser-ready", {
+        url,
+        browserWSEndpoint: this.browser.wsEndpoint(),
+      });
+
       return true;
     } catch (error) {
       console.error("Failed to launch browser:", error);
@@ -238,7 +245,9 @@ class BrowserManager extends EventEmitter {
       this.browser = null;
       this.page = null;
       this.emit("browser-closed");
+      return true;
     }
+    return false;
   }
 }
 

@@ -136,13 +136,26 @@ class Recorder extends EventEmitter {
     }
   }
 
-  stopRecording() {
+  async stopRecording() {
     if (this.recording) {
       this.recording = false;
       this.isPaused = false;
+
+      // Stop recording in the browser
       this.browserManager.stopRecording();
-      this.emit("recording-stopped", { steps: this.steps });
+
+      // Store steps before closing
+      const stepsSnapshot = [...this.steps];
+
+      // Close the browser to reset everything
+      await this.browserManager.close();
+
+      // Emit stopped event with steps
+      this.emit("recording-stopped", { steps: stepsSnapshot });
+
+      return stepsSnapshot;
     }
+    return [];
   }
 
   async addAssertion(type, selector, value) {

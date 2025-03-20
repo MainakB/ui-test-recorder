@@ -1,50 +1,55 @@
-import React, { useEffect, useRef } from "react";
+// src/renderer/components/StepEditor.js
+import React from "react";
 import { useSelector } from "react-redux";
-import "../styles/BrowserView.css";
+import "../styles/StepEditor.css";
 
-function BrowserView() {
-  const webviewRef = useRef(null);
-  const { currentUrl, isRecording } = useSelector((state) => state.recorder);
+function StepEditor() {
+  const { steps } = useSelector((state) => state.recorder);
 
-  useEffect(() => {
-    if (currentUrl && webviewRef.current) {
-      webviewRef.current.src = currentUrl;
+  const renderStep = (step, index) => {
+    let stepDisplay = "";
+
+    switch (step.type) {
+      case "navigation":
+        stepDisplay = `navigate ${step.url}`;
+        break;
+      case "click":
+        stepDisplay = `click ${step.selector?.[0]?.value || step.target}`;
+        break;
+      case "input":
+        stepDisplay = `type "${step.value}" in ${
+          step.selector?.[0]?.value || step.target
+        }`;
+        break;
+      case "assert":
+        stepDisplay = `assert ${step.assertType} "${step.value}" in ${
+          step.selector?.[0]?.value || step.target
+        }`;
+        break;
+      default:
+        stepDisplay = JSON.stringify(step);
     }
-  }, [currentUrl]);
 
-  // Handle recording initialization when webview is ready
-  useEffect(() => {
-    const handleWebviewReady = () => {
-      if (webviewRef.current && isRecording) {
-        // Inject recorder scripts into webview
-        webviewRef.current.executeJavaScript(`
-          console.log('Recording initialized in browser');
-          // Recorder initialization will go here
-        `);
-      }
-    };
-
-    if (webviewRef.current) {
-      webviewRef.current.addEventListener("dom-ready", handleWebviewReady);
-    }
-
-    return () => {
-      if (webviewRef.current) {
-        webviewRef.current.removeEventListener("dom-ready", handleWebviewReady);
-      }
-    };
-  }, [isRecording]);
+    return (
+      <div key={index} className="step-item">
+        <div className="step-number">{index + 1}</div>
+        <div className="step-content">{stepDisplay}</div>
+      </div>
+    );
+  };
 
   return (
-    <div className="browser-view">
-      <webview
-        ref={webviewRef}
-        src="about:blank"
-        className="webview"
-        webpreferences="contextIsolation=false"
-      />
+    <div className="step-editor">
+      <h3>Recorded Steps:</h3>
+      <div className="steps-container">
+        {steps.length === 0 ? (
+          <div className="no-steps">No steps recorded yet.</div>
+        ) : (
+          steps.map(renderStep)
+        )}
+      </div>
     </div>
   );
 }
 
-export default BrowserView;
+export default StepEditor;

@@ -9,8 +9,8 @@ export const startRecording = (url) => (dispatch) => {
   });
 };
 
-export const stopRecording = () => (dispatch) => {
-  ipcRenderer.send("stop-recording");
+export const stopRecording = () => (dispatch, getState) => {
+  ipcRenderer.send("stop-recording-and-save");
   dispatch({ type: "STOP_RECORDING" });
 };
 

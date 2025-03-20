@@ -11,9 +11,20 @@ function BrowserView() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (currentUrl && webviewRef.current) {
-      webviewRef.current.src = currentUrl;
+    if (currentUrl) {
+      // Connect to browser via IPC
+      ipcRenderer.on("browser-ready", (event, data) => {
+        if (webviewRef.current) {
+          webviewRef.current.src = currentUrl;
+          // You can also set up a connection to the browser's WebSocket endpoint
+          // if needed for more advanced communication
+        }
+      });
     }
+
+    return () => {
+      ipcRenderer.removeAllListeners("browser-ready");
+    };
   }, [currentUrl]);
 
   // Handle recording initialization when webview is ready
@@ -239,6 +250,20 @@ function BrowserView() {
       `);
     }
   }, [isPaused, isRecording]);
+
+  useEffect(() => {
+    const handleRecordingStop = () => {
+      if (webviewRef.current) {
+        webviewRef.current.src = "about:blank";
+      }
+    };
+
+    ipcRenderer.on("recording-stopped", handleRecordingStop);
+
+    return () => {
+      ipcRenderer.removeListener("recording-stopped", handleRecordingStop);
+    };
+  }, []);
 
   return (
     <div className="browser-view">
