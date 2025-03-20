@@ -1,3 +1,4 @@
+// main.js
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const url = require("url");
@@ -21,8 +22,6 @@ function createWindow() {
     height: 800,
     minWidth: 1024,
     minHeight: 768,
-    // width: 800,
-    // height: 600,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -85,6 +84,14 @@ function initRecorder() {
   recorder.on("recording-error", (error) => {
     mainWindow.webContents.send("recording-error", error);
   });
+
+  // Listen for events from webview via the renderer
+  ipcMain.on("webview-event", (event, data) => {
+    if (browserManager) {
+      // Forward to browser manager
+      browserManager.emit("webview-event", data);
+    }
+  });
 }
 
 // Create window when app is ready
@@ -127,18 +134,6 @@ ipcMain.on("start-recording", async (event, url) => {
   }
 });
 
-ipcMain.on("page-navigated", (event, url) => {
-  if (recorder && recorder.recording && !recorder.isPaused) {
-    const navigationStep = {
-      type: "navigation",
-      url,
-      timestamp: Date.now(),
-    };
-    recorder.steps.push(navigationStep);
-    mainWindow.webContents.send("step-added", navigationStep);
-  }
-});
-
 ipcMain.on("pause-recording", (event) => {
   if (recorder) {
     recorder.pauseRecording();
@@ -166,7 +161,7 @@ ipcMain.on("stop-recording-and-save", async (event) => {
         timestamp: new Date().toISOString(),
         steps: stepsData.steps.map((step) => {
           // Clean up internal properties
-          const { _internal, ...cleanStep } = step;
+          const { _elementInfo, ...cleanStep } = step;
           return cleanStep;
         }),
       };
@@ -228,7 +223,7 @@ ipcMain.on("save-recording", async (event, overridePath) => {
       timestamp: new Date().toISOString(),
       steps: recording.steps.map((step) => {
         // Clean up step data for export
-        const { _internal, ...cleanStep } = step;
+        const { _elementInfo, ...cleanStep } = step;
         return cleanStep;
       }),
     };
@@ -268,11 +263,7 @@ ipcMain.on("load-recording", async (event) => {
 
 // Handle inspect element
 ipcMain.on("inspect-element", async (event) => {
-  if (recorder) {
-    recorder.pauseRecording();
-    mainWindow.webContents.send("inspector-activated");
-
-    // Here we would implement the element inspection logic
-    // For now, this is just a placeholder
+  if (browserManager) {
+    browserManager.startInspecting();
   }
 });

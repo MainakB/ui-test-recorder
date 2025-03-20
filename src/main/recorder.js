@@ -1,3 +1,4 @@
+// src/main/recorder.js
 const { EventEmitter } = require("events");
 const SelectorGenerator = require("./selector-generator");
 
@@ -17,7 +18,26 @@ class Recorder extends EventEmitter {
   setupBrowserListeners() {
     // Listen for action events from the browser
     this.browserManager.on("action", this.processAction.bind(this));
-    this.browserManager.on("page-message", this.processPageMessage.bind(this));
+    this.browserManager.on(
+      "webview-event",
+      this.processWebviewEvent.bind(this)
+    );
+  }
+
+  processWebviewEvent(event) {
+    if (!this.recording || this.isPaused) return;
+
+    switch (event.type) {
+      case "click":
+        this.handleElementClicked(event.element);
+        break;
+      case "input":
+        this.handleInputChanged(event.element);
+        break;
+      case "navigation":
+        // Navigation events are handled by the browser manager directly
+        break;
+    }
   }
 
   processAction(action) {
@@ -28,45 +48,49 @@ class Recorder extends EventEmitter {
     this.emit("step-added", action);
   }
 
-  processPageMessage(message) {
-    if (!this.recording || this.isPaused) return;
+  async handleElementClicked(element) {
+    if (!element) return;
 
-    if (message.type === "element-clicked") {
-      this.handleElementClicked(message.data);
-    } else if (message.type === "input-changed") {
-      this.handleInputChanged(message.data);
-    }
-  }
-
-  async handleElementClicked(data) {
-    const { element } = data;
-
-    // Generate a selector for this element
-    const selector = await this.selectorGenerator.generateSelector(element);
+    // Prepare selector array from element info
+    const selectors = [
+      {
+        type: "css",
+        value: element.selector || element.tagName.toLowerCase(),
+        confidence: 100,
+      },
+    ];
 
     const clickAction = {
       type: "click",
-      selector,
       target: this.getElementDescription(element),
-      timestamp: data.timestamp,
+      selector: selectors,
+      timestamp: Date.now(),
+      _elementInfo: element,
     };
 
     this.steps.push(clickAction);
     this.emit("step-added", clickAction);
   }
 
-  async handleInputChanged(data) {
-    const { element } = data;
+  async handleInputChanged(element) {
+    if (!element) return;
 
-    // Generate a selector for this element
-    const selector = await this.selectorGenerator.generateSelector(element);
+    // Prepare selector array from element info
+    const selectors = [
+      {
+        type: "css",
+        value: element.selector || `${element.tagName.toLowerCase()}`,
+        confidence: 100,
+      },
+    ];
 
     const inputAction = {
       type: "input",
-      selector,
+      selector: selectors,
       value: element.value,
       target: this.getElementDescription(element),
-      timestamp: data.timestamp,
+      timestamp: Date.now(),
+      _elementInfo: element,
     };
 
     this.steps.push(inputAction);
@@ -74,6 +98,8 @@ class Recorder extends EventEmitter {
   }
 
   getElementDescription(element) {
+    if (!element) return "unknown";
+
     if (element.id) return `#${element.id}`;
     if (element.name)
       return `${element.tagName.toLowerCase()}[name="${element.name}"]`;
@@ -81,7 +107,18 @@ class Recorder extends EventEmitter {
       const classes = element.className.split(" ").filter(Boolean);
       if (classes.length) return `.${classes[0]}`;
     }
-    return element.tagName.toLowerCase();
+
+    // Simplified label for the UI
+    let desc = element.tagName.toLowerCase();
+
+    // Add some context for the target
+    if (element.innerText && element.innerText.length < 20) {
+      desc += ` "${element.innerText.trim()}"`;
+    } else if (element.type) {
+      desc += ` (${element.type})`;
+    }
+
+    return desc;
   }
 
   async startRecording(url) {
@@ -149,7 +186,6 @@ class Recorder extends EventEmitter {
         // Tell browser manager to stop recording
         this.browserManager.stopRecording();
 
-        // No need to close browser anymore since we're using the webview
         // Wait a moment for any pending events
         await new Promise((resolve) => setTimeout(resolve, 100));
 

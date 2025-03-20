@@ -7,7 +7,7 @@ import "../styles/BrowserView.css";
 function BrowserView() {
   const webviewRef = useRef(null);
   const containerRef = useRef(null);
-  const { currentUrl, isRecording, isPaused } = useSelector(
+  const { currentUrl, isRecording, isPaused, isInspecting } = useSelector(
     (state) => state.recorder
   );
 
@@ -67,13 +67,15 @@ function BrowserView() {
 
   // Set up event handlers for the webview
   useEffect(() => {
+    if (!webviewRef.current) return;
+
     const handleDomReady = () => {
       console.log("Webview DOM ready");
       setIsLoading(false);
 
-      // Inject recorder scripts
+      // Inject recorder scripts when recording is active
       if (isRecording && webviewRef.current) {
-        injectRecorderScripts();
+        injectStatusIndicator();
       }
     };
 
@@ -83,74 +85,65 @@ function BrowserView() {
 
     const handleNavigationStart = () => {
       setIsLoading(true);
-      if (isRecording && !isPaused) {
-        // Record navigation event
-        ipcRenderer.send("page-navigated", webviewRef.current.getURL());
-      }
     };
 
     const handleNavigationEnd = () => {
       setIsLoading(false);
     };
 
-    const handleClick = (e) => {
-      if (isRecording && !isPaused) {
-        console.log("Click in webview", e);
-        // We can extract element information and send it to main process
+    // Handle events from the webview
+    const handleWebviewMessage = (e) => {
+      console.log("Received webview message:", e.channel, e.args);
+
+      // Make sure we only process our specific messages
+      if (e.channel === "webview-event") {
+        const eventData = e.args[0];
+        console.log("Processing webview event:", eventData.type);
+
+        // Forward to main process
+        ipcRenderer.send("webview-event", eventData);
       }
     };
 
-    if (webviewRef.current) {
-      webviewRef.current.addEventListener("dom-ready", handleDomReady);
-      webviewRef.current.addEventListener(
-        "console-message",
-        handleConsoleMessage
-      );
-      webviewRef.current.addEventListener(
-        "did-start-loading",
-        handleNavigationStart
-      );
-      webviewRef.current.addEventListener(
-        "did-stop-loading",
-        handleNavigationEnd
-      );
+    // Set up event listeners
+    webviewRef.current.addEventListener("dom-ready", handleDomReady);
+    webviewRef.current.addEventListener(
+      "console-message",
+      handleConsoleMessage
+    );
+    webviewRef.current.addEventListener(
+      "did-start-loading",
+      handleNavigationStart
+    );
+    webviewRef.current.addEventListener(
+      "did-stop-loading",
+      handleNavigationEnd
+    );
+    webviewRef.current.addEventListener("ipc-message", handleWebviewMessage);
 
-      // Clean up
-      return () => {
-        if (webviewRef.current) {
-          webviewRef.current.removeEventListener("dom-ready", handleDomReady);
-          webviewRef.current.removeEventListener(
-            "console-message",
-            handleConsoleMessage
-          );
-          webviewRef.current.removeEventListener(
-            "did-start-loading",
-            handleNavigationStart
-          );
-          webviewRef.current.removeEventListener(
-            "did-stop-loading",
-            handleNavigationEnd
-          );
-        }
-      };
-    }
-  }, [isRecording, isPaused]);
-
-  // Listen for browser-ready events from main process
-  useEffect(() => {
-    const handleBrowserReady = (event, data) => {
-      console.log("Browser ready with URL:", data.url);
-      if (webviewRef.current && data.url) {
-        webviewRef.current.src = data.url;
-      }
-    };
-
-    ipcRenderer.on("browser-ready", handleBrowserReady);
-
+    // Clean up
     return () => {
-      ipcRenderer.removeListener("browser-ready", handleBrowserReady);
+      if (webviewRef.current) {
+        webviewRef.current.removeEventListener("dom-ready", handleDomReady);
+        webviewRef.current.removeEventListener(
+          "console-message",
+          handleConsoleMessage
+        );
+        webviewRef.current.removeEventListener(
+          "did-start-loading",
+          handleNavigationStart
+        );
+        webviewRef.current.removeEventListener(
+          "did-stop-loading",
+          handleNavigationEnd
+        );
+        webviewRef.current.removeEventListener(
+          "ipc-message",
+          handleWebviewMessage
+        );
+      }
     };
-  }, []);
+  }, [isRecording, isPaused, isInspecting]);
 
   // Handle recording stopped event
   useEffect(() => {
@@ -172,55 +165,53 @@ function BrowserView() {
     };
   }, []);
 
-  const injectRecorderScripts = () => {
+  const injectStatusIndicator = () => {
     if (!webviewRef.current) return;
 
+    // Inject a floating indicator to show recording status
     webviewRef.current
       .executeJavaScript(
         `
-      // Create recorder object
-      window.__recorder = {
-        isRecording: true,
-        isPaused: ${isPaused},
-        
-        init: function() {
-          console.log('Recorder initialized');
-          this.setupEventListeners();
-        },
-        
-        setupEventListeners: function() {
-          document.addEventListener('click', this.handleClick.bind(this), true);
-          document.addEventListener('input', this.handleInput.bind(this), true);
-          console.log('Event listeners added');
-        },
-        
-        handleClick: function(event) {
-          if (this.isPaused) return;
-          
-          const element = event.target;
-          console.log('Click recorded on:', element.tagName, 
-            element.id ? '#' + element.id : '',
-            element.className ? '.' + element.className.replace(/ /g, '.') : '');
-        },
-        
-        handleInput: function(event) {
-          if (this.isPaused) return;
-          
-          const element = event.target;
-          if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT') {
-            console.log('Input recorded on:', element.tagName, 
-              element.id ? '#' + element.id : '',
-              'value:', element.value);
-          }
+      // Add recording indicator
+      (function() {
+        // Remove existing indicator if present
+        const existingIndicator = document.getElementById('ui-test-recorder-indicator');
+        if (existingIndicator) {
+          existingIndicator.remove();
         }
-      };
-      
-      // Initialize recorder
-      window.__recorder.init();
+        
+        // Create new indicator
+        const indicator = document.createElement('div');
+        indicator.id = 'ui-test-recorder-indicator';
+        indicator.style.position = 'fixed';
+        indicator.style.zIndex = '9999999';
+        indicator.style.right = '10px';
+        indicator.style.top = '10px';
+        indicator.style.background = 'rgba(255, 0, 0, 0.7)';
+        indicator.style.color = 'white';
+        indicator.style.padding = '5px 10px';
+        indicator.style.borderRadius = '4px';
+        indicator.style.fontSize = '12px';
+        indicator.style.fontFamily = 'Arial, sans-serif';
+        indicator.style.pointerEvents = 'none';
+        indicator.style.transition = 'opacity 0.3s ease';
+        indicator.textContent = ${
+          isPaused ? "'Recording Paused'" : "'Recording Active'"
+        };
+        
+        // Add to DOM
+        document.body.appendChild(indicator);
+        
+        // Periodically pulse the indicator
+        setInterval(() => {
+          indicator.style.opacity = '0.7';
+          setTimeout(() => { indicator.style.opacity = '1'; }, 500);
+        }, 1000);
+      })();
     `
       )
       .catch((err) => {
-        console.error("Failed to inject recorder scripts:", err);
+        console.error("Failed to inject status indicator:", err);
       });
   };
 
@@ -289,9 +280,9 @@ function BrowserView() {
           ref={webviewRef}
           src="about:blank"
           className="webview"
-          preload="./preload.js"
+          webpreferences="nodeIntegration=true, contextIsolation=false"
           nodeintegration="true"
-          webpreferences="contextIsolation=false"
+          preload={`${process.cwd()}/build/preload.js`}
         />
       </div>
     </div>
