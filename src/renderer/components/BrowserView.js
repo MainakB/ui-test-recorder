@@ -12,12 +12,15 @@ function BrowserView() {
   );
 
   const [scale, setScale] = useState(1);
-
+  const [customScale, setCustomScale] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showMinSizeWarning, setShowMinSizeWarning] = useState(false);
+
   const dispatch = useDispatch();
 
   const MARGIN_X = 20; // total horizontal margin
   const MARGIN_Y = 20; // total vertical margin
+  const MIN_SCALE = 0.3; // minimum allowed scale factor
 
   // Update scale factors based on container dimensions
   useEffect(() => {
@@ -31,12 +34,19 @@ function BrowserView() {
       const availableHeight = parentRect.height - MARGIN_Y;
 
       // Uniform scale to preserve aspect ratio
-      const uniformScale = Math.min(
+      const calculatedScale = Math.min(
         availableWidth / 1280,
         availableHeight / 800
       );
 
-      setScale(uniformScale);
+      // Use custom scale if set, otherwise use calculated scale
+      const newScale = customScale || calculatedScale;
+
+      // Show warning if scale is below minimum threshold
+      setShowMinSizeWarning(newScale < MIN_SCALE);
+
+      // Apply scale, but don't go below minimum
+      setScale(Math.max(newScale, MIN_SCALE));
     };
 
     updateScale();
@@ -44,7 +54,7 @@ function BrowserView() {
     return () => {
       window.removeEventListener("resize", updateScale);
     };
-  }, []);
+  }, [customScale]);
 
   // When currentUrl changes, navigate the webview
   useEffect(() => {
@@ -121,15 +131,6 @@ function BrowserView() {
             "did-stop-loading",
             handleNavigationEnd
           );
-
-          return () => {
-            if (webviewRef.current) {
-              webviewRef.current.removeEventListener(
-                "dom-ready",
-                handleDomReady
-              );
-            }
-          };
         }
       };
     }
@@ -223,6 +224,30 @@ function BrowserView() {
       });
   };
 
+  // Zoom control handlers
+  const handleZoomIn = () => {
+    setCustomScale((prevScale) => {
+      const newScale = prevScale ? prevScale * 1.1 : scale * 1.1;
+      return Math.min(newScale, 2.0); // Limit maximum zoom
+    });
+  };
+
+  const handleZoomOut = () => {
+    setCustomScale((prevScale) => {
+      const newScale = prevScale ? prevScale * 0.9 : scale * 0.9;
+      return Math.max(newScale, MIN_SCALE); // Respect minimum zoom
+    });
+  };
+
+  const handleResetZoom = () => {
+    setCustomScale(null); // Reset to automatic scaling
+  };
+
+  // Format scale as percentage
+  const formatZoomPercentage = () => {
+    return Math.round(scale * 100) + "%";
+  };
+
   return (
     <div className="browser-view">
       {isLoading && <div className="loading-indicator">Loading...</div>}
@@ -231,13 +256,33 @@ function BrowserView() {
           Recording{isPaused ? " (Paused)" : ""}...
         </div>
       )}
+
+      {/* Zoom controls */}
+      <div className="zoom-controls">
+        <button onClick={handleZoomOut} title="Zoom Out">
+          −
+        </button>
+        <div className="zoom-info">{formatZoomPercentage()}</div>
+        <button onClick={handleZoomIn} title="Zoom In">
+          +
+        </button>
+        <button onClick={handleResetZoom} title="Reset Zoom">
+          ↺
+        </button>
+      </div>
+
+      {/* Minimum size warning */}
+      {showMinSizeWarning && (
+        <div className="min-size-warning">
+          Window size is too small for optimal viewing
+        </div>
+      )}
+
       <div
         className="desktop-container"
         ref={containerRef}
         style={{
-          transform: `translate(${MARGIN_X / 2}px, ${
-            MARGIN_Y / 2
-          }px) scale(${scale})`,
+          transform: `scale(${scale})`,
         }}
       >
         <webview
