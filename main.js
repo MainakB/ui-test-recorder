@@ -21,6 +21,8 @@ function createWindow() {
     height: 800,
     minWidth: 1024,
     minHeight: 768,
+    // width: 800,
+    // height: 600,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -36,6 +38,7 @@ function createWindow() {
       slashes: true,
     })
   );
+  mainWindow.maximize();
 
   // Open DevTools in development mode
   if (process.argv.includes("--dev")) {
