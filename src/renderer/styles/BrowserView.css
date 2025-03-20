@@ -1,51 +1,33 @@
 /* src/renderer/styles/BrowserView.css */
-/* .browser-view {
-    position: relative;
-    height: 100%;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .webview {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-    border: none;
-    background-color: white;
-  } */
-
-  .browser-view {
+.browser-view {
     position: relative;
     width: 100%;
     height: 100%;
-    overflow: hidden;
+    overflow: auto; /* Changed from hidden to auto to allow scrolling when needed */
     display: flex;
     flex-direction: column;
+    background-color: #f0f0f0; /* Light gray background for the container */
   }
   
-/* The container always has a fixed desktop viewport */
-.desktop-container {
-    position: absolute;
-    top: 0;
-    left: 0;
+  /* The container always has a fixed desktop viewport */
+  .desktop-container {
+    position: relative; /* Changed from absolute for better scrolling behavior */
+    margin: 20px auto; /* Center the container */
     width: 1280px;
     height: 800px;
     transform-origin: top left; /* Scale from top-left corner */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Add subtle shadow */
+    border: 1px solid #ddd; /* Light border */
+    border-radius: 4px; /* Slightly rounded corners */
+    overflow: hidden; /* Keep webview content from spilling out */
+    transition: transform 0.2s ease-out; /* Smooth transition when scaling changes */
   }
   
   .webview {
-    flex: 1;
     width: 1280px;
     height: 800px;
     border: none;
     background-color: white;
-  }
-
-  .desktop-container {
-    width: 1280px;       /* Fixed desktop width */
-    height: 800px;       /* Fixed desktop height */
-    transform-origin: top left;
   }
   
   .loading-indicator {
@@ -68,4 +50,61 @@
     color: white;
     border-radius: 4px;
     z-index: 100;
+  }
+  
+  /* Zoom controls */
+  .zoom-controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    z-index: 100;
+  }
+  
+  .zoom-controls button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+  }
+  
+  .zoom-controls button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .zoom-info {
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #666;
+    margin: 0 2px;
+  }
+  
+  /* Minimum size warning */
+  .min-size-warning {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(255, 166, 0, 0.9);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 100;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    transition: opacity 0.3s ease;
   }
