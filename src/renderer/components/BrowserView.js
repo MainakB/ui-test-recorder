@@ -1,33 +1,98 @@
 // src/renderer/components/BrowserView.js
-import React, { useEffect, useRef } from "react";
-import { useSelector } from "react-redux";
+import React, { useEffect, useRef, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 const { ipcRenderer } = window.require("electron");
 import "../styles/BrowserView.css";
 
 function BrowserView() {
   const webviewRef = useRef(null);
-  const { currentUrl, isRecording } = useSelector((state) => state.recorder);
+  const { currentUrl, isRecording, isPaused } = useSelector(
+    (state) => state.recorder
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
 
   // When currentUrl changes, navigate the webview
   useEffect(() => {
     if (currentUrl && webviewRef.current) {
       console.log("Navigating webview to:", currentUrl);
-      // Make sure the webview is loaded before setting src
-      if (webviewRef.current.readyState === "complete") {
-        webviewRef.current.src = currentUrl;
-      } else {
-        webviewRef.current.addEventListener(
-          "dom-ready",
-          () => {
-            webviewRef.current.src = currentUrl;
-          },
-          { once: true }
-        );
-      }
+      setIsLoading(true);
+      webviewRef.current.src = currentUrl;
     }
   }, [currentUrl]);
 
-  // Listen for browser-ready events
+  // Set up event handlers for the webview
+  useEffect(() => {
+    const handleDomReady = () => {
+      console.log("Webview DOM ready");
+      setIsLoading(false);
+
+      // Inject recorder scripts
+      if (isRecording && webviewRef.current) {
+        injectRecorderScripts();
+      }
+    };
+
+    const handleConsoleMessage = (e) => {
+      console.log("Webview console:", e.message);
+    };
+
+    const handleNavigationStart = () => {
+      setIsLoading(true);
+      if (isRecording && !isPaused) {
+        // Record navigation event
+        ipcRenderer.send("page-navigated", webviewRef.current.getURL());
+      }
+    };
+
+    const handleNavigationEnd = () => {
+      setIsLoading(false);
+    };
+
+    const handleClick = (e) => {
+      if (isRecording && !isPaused) {
+        console.log("Click in webview", e);
+        // We can extract element information and send it to main process
+      }
+    };
+
+    if (webviewRef.current) {
+      webviewRef.current.addEventListener("dom-ready", handleDomReady);
+      webviewRef.current.addEventListener(
+        "console-message",
+        handleConsoleMessage
+      );
+      webviewRef.current.addEventListener(
+        "did-start-loading",
+        handleNavigationStart
+      );
+      webviewRef.current.addEventListener(
+        "did-stop-loading",
+        handleNavigationEnd
+      );
+
+      // Clean up
+      return () => {
+        if (webviewRef.current) {
+          webviewRef.current.removeEventListener("dom-ready", handleDomReady);
+          webviewRef.current.removeEventListener(
+            "console-message",
+            handleConsoleMessage
+          );
+          webviewRef.current.removeEventListener(
+            "did-start-loading",
+            handleNavigationStart
+          );
+          webviewRef.current.removeEventListener(
+            "did-stop-loading",
+            handleNavigationEnd
+          );
+        }
+      };
+    }
+  }, [isRecording, isPaused]);
+
+  // Listen for browser-ready events from main process
   useEffect(() => {
     const handleBrowserReady = (event, data) => {
       console.log("Browser ready with URL:", data.url);
@@ -46,12 +111,13 @@ function BrowserView() {
   // Handle recording stopped event
   useEffect(() => {
     const handleRecordingStop = () => {
-      if (webviewRef.current) {
-        try {
-          webviewRef.current.src = "";
-        } catch (error) {
-          console.error("Error resetting webview:", error);
+      try {
+        // Just clear the webview content rather than trying to navigate
+        if (webviewRef.current) {
+          webviewRef.current.loadURL("about:blank");
         }
+      } catch (error) {
+        console.error("Error resetting webview:", error);
       }
     };
 
@@ -62,15 +128,73 @@ function BrowserView() {
     };
   }, []);
 
+  const injectRecorderScripts = () => {
+    if (!webviewRef.current) return;
+
+    webviewRef.current
+      .executeJavaScript(
+        `
+      // Create recorder object
+      window.__recorder = {
+        isRecording: true,
+        isPaused: ${isPaused},
+        
+        init: function() {
+          console.log('Recorder initialized');
+          this.setupEventListeners();
+        },
+        
+        setupEventListeners: function() {
+          document.addEventListener('click', this.handleClick.bind(this), true);
+          document.addEventListener('input', this.handleInput.bind(this), true);
+          console.log('Event listeners added');
+        },
+        
+        handleClick: function(event) {
+          if (this.isPaused) return;
+          
+          const element = event.target;
+          console.log('Click recorded on:', element.tagName, 
+            element.id ? '#' + element.id : '',
+            element.className ? '.' + element.className.replace(/ /g, '.') : '');
+        },
+        
+        handleInput: function(event) {
+          if (this.isPaused) return;
+          
+          const element = event.target;
+          if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT') {
+            console.log('Input recorded on:', element.tagName, 
+              element.id ? '#' + element.id : '',
+              'value:', element.value);
+          }
+        }
+      };
+      
+      // Initialize recorder
+      window.__recorder.init();
+    `
+      )
+      .catch((err) => {
+        console.error("Failed to inject recorder scripts:", err);
+      });
+  };
+
   return (
     <div className="browser-view">
+      {isLoading && <div className="loading-indicator">Loading...</div>}
+      {isRecording && (
+        <div className="recording-indicator">
+          Recording{isPaused ? " (Paused)" : ""}...
+        </div>
+      )}
       <webview
         ref={webviewRef}
-        src=""
+        src="about:blank"
         className="webview"
+        preload="./preload.js"
         nodeintegration="true"
         webpreferences="contextIsolation=false"
-        partition="persist:uitestrecorder"
       />
     </div>
   );
