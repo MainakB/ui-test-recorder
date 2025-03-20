@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { ipcRenderer } from "electron";
 import { setSelectedElement } from "../store/actions";
 import "../styles/BrowserView.css";
 

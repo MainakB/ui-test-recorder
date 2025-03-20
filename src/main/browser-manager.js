@@ -14,7 +14,7 @@ class BrowserManager extends EventEmitter {
     try {
       // Launch browser in headless mode
       this.browser = await puppeteer.launch({
-        headless: true, // Change to true to prevent separate window
+        headless: false, // Change to true to prevent separate window
         defaultViewport: null,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
       });
