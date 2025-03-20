@@ -12,9 +12,9 @@ class BrowserManager extends EventEmitter {
 
   async launch(url) {
     try {
-      // Launch browser in headless mode
+      // Launch browser in headless mode (can be true or false)
       this.browser = await puppeteer.launch({
-        headless: false, // Change to true to prevent separate window
+        headless: true, // We'll use Electron's webview for display
         defaultViewport: null,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
       });
@@ -24,11 +24,8 @@ class BrowserManager extends EventEmitter {
       // Setup page event listeners
       await this.setupEventListeners();
 
-      // Navigate to the URL
-      await this.page.goto(url, { waitUntil: "networkidle2" });
-
-      // Instead of launching a separate window, we'll communicate
-      // with the webview in the renderer process
+      // We'll handle the actual navigation in the webview
+      // Just notify the renderer that the browser is ready
       this.emit("browser-ready", {
         url,
         browserWSEndpoint: this.browser.wsEndpoint(),

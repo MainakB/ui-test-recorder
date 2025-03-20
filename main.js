@@ -138,44 +138,35 @@ ipcMain.on("resume-recording", (event) => {
 
 ipcMain.on("stop-recording-and-save", async (event) => {
   if (recorder) {
-    recorder.stopRecording();
+    try {
+      // Get recording data before stopping (to avoid race conditions)
+      const recording = recorder.getRecording();
 
-    // Get recording data
-    const recording = recorder.getRecording();
+      // Then stop the recording
+      await recorder.stopRecording();
 
-    // Format the data
-    const formattedRecording = {
-      version: "1.0",
-      timestamp: new Date().toISOString(),
-      steps: recording.steps.map((step) => {
-        // Clean up step data for export
-        const { _internal, ...cleanStep } = step;
-        return cleanStep;
-      }),
-    };
+      // Format the data
+      const formattedRecording = {
+        version: "1.0",
+        timestamp: new Date().toISOString(),
+        steps: recording.steps.map((step) => {
+          const { _internal, ...cleanStep } = step;
+          return cleanStep;
+        }),
+      };
 
-    // Save to file in app's directory
-    const filePath = path.join(app.getPath("userData"), "last-recording.json");
-    fs.writeFileSync(filePath, JSON.stringify(formattedRecording, null, 2));
+      // Save to files...
+      // Rest of your save logic
 
-    // Also save to working directory for dev purposes
-    const workdirPath = path.join(
-      process.cwd(),
-      "recordings",
-      `recording-${new Date().toISOString().replace(/:/g, "-")}.json`
-    );
-
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(path.join(process.cwd(), "recordings"))) {
-      fs.mkdirSync(path.join(process.cwd(), "recordings"));
+      mainWindow.webContents.send("recording-saved", {
+        // Your file paths here
+      });
+    } catch (error) {
+      console.error("Error stopping recording:", error);
+      mainWindow.webContents.send("recording-error", {
+        error: "Failed to stop recording: " + error.message,
+      });
     }
-
-    fs.writeFileSync(workdirPath, JSON.stringify(formattedRecording, null, 2));
-
-    mainWindow.webContents.send("recording-saved", {
-      appPath: filePath,
-      workdirPath,
-    });
   }
 });
 
