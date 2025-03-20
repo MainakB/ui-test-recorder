@@ -4,7 +4,7 @@
   "description": "UI Test Automation Recorder",
   "main": "main.js",
   "scripts": {
-    "predev": "webpack --config webpack.config.js && mkdir -p build && cp src/renderer/index.html build/index.html",
+    "predev": "webpack --config webpack.config.js && mkdir -p build && cp src/renderer/index.html build/index.html && cp src/renderer/preload.js build/preload.js",
     "start": "electron .",
     "dev": "electron . --dev",
     "build": "webpack --config webpack.config.js && electron-builder",

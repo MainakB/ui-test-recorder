@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "timestamp": "2025-03-20T03:31:56.458Z",
+  "steps": [
+    {
+      "type": "navigation",
+      "url": "https://amazon.com",
+      "timestamp": 1742441503081
+    }
+  ]
+}

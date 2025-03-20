@@ -124,6 +124,18 @@ ipcMain.on("start-recording", async (event, url) => {
   }
 });
 
+ipcMain.on("page-navigated", (event, url) => {
+  if (recorder && recorder.recording && !recorder.isPaused) {
+    const navigationStep = {
+      type: "navigation",
+      url,
+      timestamp: Date.now(),
+    };
+    recorder.steps.push(navigationStep);
+    mainWindow.webContents.send("step-added", navigationStep);
+  }
+});
+
 ipcMain.on("pause-recording", (event) => {
   if (recorder) {
     recorder.pauseRecording();
@@ -139,32 +151,42 @@ ipcMain.on("resume-recording", (event) => {
 ipcMain.on("stop-recording-and-save", async (event) => {
   if (recorder) {
     try {
-      // Get recording data before stopping (to avoid race conditions)
-      const recording = recorder.getRecording();
+      // Get recording data
+      const stepsData = recorder.getRecording();
 
-      // Then stop the recording
+      // Stop recording
       await recorder.stopRecording();
 
-      // Format the data
+      // Format for saving
       const formattedRecording = {
         version: "1.0",
         timestamp: new Date().toISOString(),
-        steps: recording.steps.map((step) => {
+        steps: stepsData.steps.map((step) => {
+          // Clean up internal properties
           const { _internal, ...cleanStep } = step;
           return cleanStep;
         }),
       };
 
-      // Save to files...
-      // Rest of your save logic
+      // Create recordings directory if it doesn't exist
+      const recordingsDir = path.join(process.cwd(), "recordings");
+      if (!fs.existsSync(recordingsDir)) {
+        fs.mkdirSync(recordingsDir);
+      }
 
-      mainWindow.webContents.send("recording-saved", {
-        // Your file paths here
-      });
+      // Save to file
+      const fileName = `recording-${new Date()
+        .toISOString()
+        .replace(/:/g, "-")}.json`;
+      const filePath = path.join(recordingsDir, fileName);
+      fs.writeFileSync(filePath, JSON.stringify(formattedRecording, null, 2));
+
+      // Notify renderer
+      mainWindow.webContents.send("recording-saved", { filePath });
     } catch (error) {
-      console.error("Error stopping recording:", error);
+      console.error("Error stopping and saving recording:", error);
       mainWindow.webContents.send("recording-error", {
-        error: "Failed to stop recording: " + error.message,
+        error: "Failed to save recording: " + error.message,
       });
     }
   }

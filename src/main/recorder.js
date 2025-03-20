@@ -138,22 +138,34 @@ class Recorder extends EventEmitter {
 
   async stopRecording() {
     if (this.recording) {
+      // Make a copy of steps before we do anything else
+      const stepsSnapshot = [...this.steps];
+
+      // Update state
       this.recording = false;
       this.isPaused = false;
 
-      // Stop recording in the browser
-      this.browserManager.stopRecording();
+      try {
+        // Tell browser manager to stop recording
+        this.browserManager.stopRecording();
 
-      // Store steps before closing
-      const stepsSnapshot = [...this.steps];
+        // No need to close browser anymore since we're using the webview
+        // Wait a moment for any pending events
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Close the browser to reset everything
-      await this.browserManager.close();
+        // Now emit the stopped event with our snapshot
+        this.emit("recording-stopped", { steps: stepsSnapshot });
 
-      // Emit stopped event with steps
-      this.emit("recording-stopped", { steps: stepsSnapshot });
-
-      return stepsSnapshot;
+        return stepsSnapshot;
+      } catch (error) {
+        console.error("Error stopping recording:", error);
+        // Still emit the stopped event with our snapshot
+        this.emit("recording-stopped", {
+          steps: stepsSnapshot,
+          error: error.message,
+        });
+        return stepsSnapshot;
+      }
     }
     return [];
   }
