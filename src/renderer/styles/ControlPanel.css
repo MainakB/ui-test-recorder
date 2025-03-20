@@ -1,0 +1,170 @@
+/* src/renderer/styles/ControlPanel.css */
+.control-panel {
+    padding: 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .url-input-container {
+    width: 100%;
+  }
+  
+  .url-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .button-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .button-container button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  
+  .start-button {
+    background-color: #4caf50;
+    color: white;
+  }
+  
+  .stop-button {
+    background-color: #f44336;
+    color: white;
+  }
+  
+  .pause-button {
+    background-color: #ff9800;
+    color: white;
+  }
+  
+  .resume-button {
+    background-color: #4caf50;
+    color: white;
+  }
+  
+  .save-button {
+    background-color: #2196f3;
+    color: white;
+  }
+  
+  .load-button {
+    background-color: #9c27b0;
+    color: white;
+  }
+  
+  .inspect-button {
+    background-color: #607d8b;
+    color: white;
+  }
+  
+  .inspect-button.active {
+    background-color: #ff5722;
+  }
+  
+  .button-container button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  .action-panel {
+    margin-top: 12px;
+    padding: 12px;
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .current-element {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .element-info {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+  }
+  
+  .element-selector {
+    font-family: monospace;
+    font-weight: 500;
+    padding: 2px 6px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+  }
+  
+  .element-type {
+    color: #666;
+    font-size: 12px;
+  }
+  
+  .no-element {
+    color: #999;
+    font-style: italic;
+  }
+  
+  .assertion-creator {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+  }
+  
+  .assertion-dropdown, .utility-dropdown {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .assertion-value-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .add-assertion-button, .add-utility-button {
+    padding: 8px 12px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  .add-assertion-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  .utility-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }

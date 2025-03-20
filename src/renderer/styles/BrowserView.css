@@ -1,0 +1,37 @@
+/* src/renderer/styles/BrowserView.css */
+.browser-view {
+    position: relative;
+    height: 100%;
+    width: 100%;
+  }
+  
+  .webview {
+    height: 100%;
+    width: 100%;
+    border: none;
+  }
+  
+  .webview.inspecting {
+    cursor: crosshair;
+  }
+  
+  .inspector-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: rgba(255, 87, 34, 0.1);
+    padding: 12px;
+    text-align: center;
+  }
+  
+  .inspector-message {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #ff5722;
+    color: white;
+    border-radius: 4px;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }

@@ -16,8 +16,17 @@ export const stopRecording = () => (dispatch) => {
 
 export const togglePause = () => (dispatch, getState) => {
   const { isPaused } = getState().recorder;
-  ipcRenderer.send("toggle-pause", !isPaused);
+  if (isPaused) {
+    ipcRenderer.send("resume-recording");
+  } else {
+    ipcRenderer.send("pause-recording");
+  }
   dispatch({ type: "TOGGLE_PAUSE" });
+};
+
+export const inspectElement = () => (dispatch) => {
+  ipcRenderer.send("inspect-element");
+  dispatch({ type: "ACTIVATE_INSPECTOR" });
 };
 
 // Step actions
@@ -25,6 +34,14 @@ export const addStep = (step) => ({
   type: "ADD_STEP",
   payload: step,
 });
+
+export const addAssertion = (assertionType, selector, value) => (dispatch) => {
+  ipcRenderer.send("add-assertion", {
+    type: assertionType,
+    selector,
+    value,
+  });
+};
 
 export const setSelectedElement = (element) => ({
   type: "SET_SELECTED_ELEMENT",
@@ -35,18 +52,53 @@ export const setSelectedElement = (element) => ({
 export const saveRecording = () => (dispatch, getState) => {
   const { steps } = getState().recorder;
 
-  const formattedSteps = steps.map((step) => {
-    // Remove any internal properties before saving
-    const { _id, _timestamp, ...cleanStep } = step;
-    return cleanStep;
+  ipcRenderer.send("save-recording");
+  // The actual save operation will happen in the main process
+};
+
+export const loadRecording = () => (dispatch) => {
+  ipcRenderer.send("load-recording");
+};
+
+// Initialize IPC listeners
+export const initializeIpcListeners = () => (dispatch) => {
+  ipcRenderer.on("recording-started", (event, data) => {
+    dispatch({ type: "RECORDING_STARTED", payload: data });
   });
 
-  const recording = {
-    version: "1.0",
-    timestamp: new Date().toISOString(),
-    actions: formattedSteps,
-  };
+  ipcRenderer.on("recording-paused", () => {
+    dispatch({ type: "RECORDING_PAUSED" });
+  });
 
-  ipcRenderer.send("save-recording", recording);
-  dispatch({ type: "RECORDING_SAVED" });
+  ipcRenderer.on("recording-resumed", () => {
+    dispatch({ type: "RECORDING_RESUMED" });
+  });
+
+  ipcRenderer.on("recording-stopped", (event, data) => {
+    dispatch({ type: "RECORDING_STOPPED", payload: data });
+  });
+
+  ipcRenderer.on("step-added", (event, step) => {
+    dispatch({ type: "ADD_STEP", payload: step });
+  });
+
+  ipcRenderer.on("recording-saved", (event, filePath) => {
+    dispatch({ type: "RECORDING_SAVED", payload: filePath });
+  });
+
+  ipcRenderer.on("recording-loaded", (event, recording) => {
+    dispatch({ type: "RECORDING_LOADED", payload: recording });
+  });
+
+  ipcRenderer.on("inspector-activated", () => {
+    dispatch({ type: "INSPECTOR_ACTIVATED" });
+  });
+
+  ipcRenderer.on("element-selected", (event, element) => {
+    dispatch({ type: "SET_SELECTED_ELEMENT", payload: element });
+  });
+
+  ipcRenderer.on("recording-error", (event, error) => {
+    dispatch({ type: "RECORDING_ERROR", payload: error });
+  });
 };

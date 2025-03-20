@@ -1,0 +1,45 @@
+/* src/renderer/styles/StatusBar.css */
+.status-bar {
+    display: flex;
+    padding: 6px 16px;
+    background-color: #333;
+    color: #fff;
+    font-size: 12px;
+    gap: 16px;
+  }
+  
+  .status-item {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  
+  .status-label {
+    font-weight: 500;
+    color: #ccc;
+  }
+  
+  .status-value {
+    font-weight: 500;
+  }
+  
+  .status-value.recording {
+    color: #f44336;
+    animation: pulse 1.5s infinite;
+  }
+  
+  .status-value.paused {
+    color: #ff9800;
+  }
+  
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
